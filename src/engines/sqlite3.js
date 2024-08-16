@@ -16,11 +16,11 @@ export class Sqlite3Collection {
         }
         else if ("$ne" in query) {
             values.push(query.$ne);
-            return expr + " >? ?";
+            return expr + " <> ?";
         }
         else if ("$lt" in query) {
             values.push(query.$lt);
-            return expr + " > ?";
+            return expr + " < ?";
         }
         else if ("$gt" in query) {
             values.push(query.$gt);

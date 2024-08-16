@@ -12,5 +12,5 @@ Compact document-based database for prototyping.
 npm i @ikasoba000/pigmo
 
 # pnpm
-pnpm i @ikasoba00/pigmo
+pnpm i @ikasoba000/pigmo
 ```
