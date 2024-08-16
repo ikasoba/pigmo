@@ -1,11 +1,17 @@
 {
   "type": "module",
   "name": "@ikasoba000/pigmo",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Compact document-based Database for prototyping.",
   "exports": {
-    ".": "./src/Pigmo.js",
-    "./*": "./src/*.js"
+    ".": {
+      "default": "./src/Pigmo.js",
+      "types": "./src/Pigmo.d.ts"
+    },
+    "./*": {
+      "default": "./src/*.js",
+      "types": "./src/*.d.ts"
+    }
   },
   "scripts": {
     "test": "npm run build && node tests/index.js",
