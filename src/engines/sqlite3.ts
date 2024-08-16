@@ -20,10 +20,10 @@ export class Sqlite3Collection<T> implements PigmoCollection<T> {
       return expr + " = ?"
     } else if ("$ne" in query) {
       values.push(query.$ne);
-      return expr + " >? ?"
+      return expr + " <> ?"
     } else if ("$lt" in query) {
       values.push(query.$lt);
-      return expr + " > ?"
+      return expr + " < ?"
     } else if ("$gt" in query) {
       values.push(query.$gt);
       return expr + " > ?"
