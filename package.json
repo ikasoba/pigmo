@@ -1,0 +1,24 @@
+{
+  "type": "module",
+  "name": "@ikasoba000/pigmo",
+  "version": "0.1.0",
+  "description": "Compact document-based Database for prototyping.",
+  "exports": {
+    ".": "./src/Pigmo.js",
+    "./*": "./src/*.js"
+  },
+  "scripts": {
+    "test": "npm run build && node tests/index.js",
+    "build": "tsc --declaration",
+    "prepare": "npm run build"
+  },
+  "keywords": [],
+  "author": "https://github.com/ikasoba",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  },
+  "peerDependencies": {
+    "sqlite3": "^5"
+  }
+}
