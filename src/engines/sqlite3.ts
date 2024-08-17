@@ -65,18 +65,29 @@ export class Sqlite3Collection<T> implements PigmoCollection<T> {
 
       return expr + " LIKE ?";
     } else {
-      const key = Object.keys(query)[0] as Extract<keyof typeof query, string>
-      const isNextOperator = typeof query[key] == "object" && query[key] ? Object.keys(query[key])[0].startsWith("$") : false;
+      const exprs = []
 
-      if (isTopLevel) {
-        if (this.properties.includes(key)) {
-          return this.queryToExpression(false, isNextOperator ? `${escapeName(key)}->>'$'` : `${escapeName(key)}`, values, query[key] as Query<T[keyof T]>);
+      for (const key in query) {
+        const qValues: unknown[] = [];
+        
+        const isNextOperator = typeof query[key] == "object" && query[key] ? Object.keys(query[key])[0].startsWith("$") : false;
+
+        if (isTopLevel) {
+          if (this.properties.includes(key)) {
+            exprs.push(this.queryToExpression(false, isNextOperator ? `${escapeName(key)}->>'$'` : `${escapeName(key)}`, qValues, query[key] as Query<T[keyof T]>))
+          } else {
+            qValues.push(key)
+            exprs.push(this.queryToExpression(false, isNextOperator ? `data->>?` : `data->?`, qValues, query[key] as Query<T[keyof T]>))
+          }
         } else {
-          return this.queryToExpression(false, isNextOperator ? `data->>?` : `data->?`, values.concat(key), query[key] as Query<T[keyof T]>);
+          qValues.push(...values, key)
+          exprs.push(this.queryToExpression(false, isNextOperator ? expr + " ->> ?" : expr + ` -> ?`, qValues, query[key] as Query<T[keyof T]>));
         }
-      } else {
-        return this.queryToExpression(false, isNextOperator ? expr + " ->> ?" : expr + ` -> ?`, values.concat(key), query[key] as Query<T[keyof T]>);
+
+        values.push(...qValues)
       }
+
+      return expr + exprs.join(" AND ");
     }
   }
 
@@ -218,42 +229,46 @@ export class Sqlite3Collection<T> implements PigmoCollection<T> {
 
       case InstructionKind.Upsert: {
         const values: unknown[] = []
-        let sql = "INSERT OR REPLACE " + escapeName("__col_" + this.name) + " SET ";
+        let sql = "INSERT OR REPLACE INTO " + escapeName("__col_" + this.name) + " VALUES ";
 
-        const sets: string[] = []
+        const rows: string[][] = []
 
-        for (const property of this.properties) {
-          sets.push(escapeName(property) + " = ?");
-          values.push(property in instr.sets ? JSON.stringify((instr.sets as Record<string, unknown>)[property]) : "null");
+        for (const value of instr.values) {
+          if (!(typeof value == "object" && value)) {
+            console.error(new Error(`Value ${value} is not object. this value ignored.`));
+            continue;
+          }
+
+          const row = [];
+
+          for (const property of this.properties) {
+            row.push(property in value ? JSON.stringify((value as Record<string, unknown>)[property]) : "null");
+          }
+
+          row.unshift(JSON.stringify(Object.fromEntries(Object.entries(value).filter(([k]) => !this.properties.includes(k)))));
+
+          rows.push(row);
         }
 
-        sql += "( " + sets.join(", ") + " )";
+        const records = []
+        for (const row of rows) {
+          records.push("( " + row.map(() => "?").join(", ") + " )");
+          values.push(...row);
+        }
 
-        sql += " WHERE ";
-
-        sql += this.queryToExpression(true, "", values, instr.where);
-
+        sql += records.join(", ");
+        
         sql += " RETURNING *";
 
         return new Promise((resolve, reject) => {
-          this.db.all<Record<string, string>>(sql, values, (err, rows) => {
+          this.db.all<Record<string, string>>(sql, values, (err) => {
             if (err) return reject(err);
 
-            const result = []
-
-            for (const row of rows) {
-              const { data, ...others } = row;
-
-              result.push({
-                ...JSON.parse("" + data),
-                ...Object.fromEntries(this.properties.map(k => [k, JSON.parse("" + others[k])] as const))
-              })
-            }
-
-            resolve(result);
+            resolve(instr.values);
           })
         })
       }
+        
       case InstructionKind.Remove: {
         const values: unknown[] = []
         let sql = "DELETE FROM " + escapeName("__col_" + this.name) + " WHERE ";
@@ -400,8 +415,6 @@ export class Sqlite3Engine implements PigmoEngine {
           }
         }
       }
-
-      console.log("Pigmo Sqlite3 Migrate:\n  " + sqls.join(";\n  "))
 
       this.db.exec(sqls.join("; "));
 

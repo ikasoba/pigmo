@@ -1,5 +1,5 @@
 deno.lock
 *.tgz
 node_modules/
-src/*.js
-src/*.d.ts
+src/**/*.js
+src/**/*.d.ts

@@ -60,10 +60,7 @@ export interface UpdateInstruction<T> {
 
 export interface UpsertInstruction<T> {
   kind: InstructionKind.Upsert;
-  sets: {
-    [K in keyof T]: { [_ in K]: T[K] }
-  }[keyof T];
-  where: Query<T>;
+  values: T[];
 }
 
 export interface RemoveInstruction<T> {

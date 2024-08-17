@@ -1,8 +1,9 @@
 {
   "type": "module",
   "name": "@ikasoba000/pigmo",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Compact document-based Database for prototyping.",
+  "repository": "https://github.com/ikasoba/pigmo",
   "exports": {
     ".": {
       "default": "./src/Pigmo.js",
